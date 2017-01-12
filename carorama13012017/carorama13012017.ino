@@ -482,7 +482,9 @@ void setup() {
 }
 
 void loop() {
+  
   listenBluetooth();
+  listener->sendIdle();
 }
 
 void scenarioA() {
