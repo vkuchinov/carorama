@@ -493,11 +493,9 @@ void scenarioA() {
   motorA->enable();
 
   Serial.println("Main Sequence");
-  RUNNING = true;
 
   led->turnOff();
   sound->play(A, 2000);
-  delay(1000);
 
   for (int i = 0; i < SHIFTS; i++) {
 
