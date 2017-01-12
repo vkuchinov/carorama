@@ -231,6 +231,7 @@ void Listener::getStop() {
 class StepperMotor {
 private:
 
+ int ports[3]; //0: dir, 1: pull, 2: enable
  int dir = 1;
  int pause = 3;
  int micropause = 2;
@@ -239,15 +240,11 @@ private:
 
 public:
  StepperMotor(int dir_, int pull_, int enable_, int resolution_);
-
- int ports[3]; //0: dir, 1: pull, 2: enableint ports[3]; //0: dir, 1: pull, 2: enable
  void inits();
  void stepCW();   //один шаг по часовой стрелки
  void stepCCW();  //один шаг против часовой стрелки
  void moveNumOfSteps(int steps_, int dir_);
- void shift(int dir_); 
- void disable();
- void enable(); 
+ void shift(int dir_);  
 };
 
 StepperMotor::StepperMotor(int dir_, int pull_, int enable_, int resolution_) { this->ports[0] = dir_; this->ports[1] = pull_; this->ports[2] = enable_; resolution = resolution_; }
@@ -308,8 +305,7 @@ void StepperMotor::stepCCW(){
 
 void StepperMotor::moveNumOfSteps(int steps_, int dir_){ digitalWrite(ports[2], LOW); for(int s = 0; s < steps_; s++){ if(dir_ == 1) { stepCW(); } else { stepCCW(); }} digitalWrite(this->ports[1], LOW); digitalWrite(ports[2], HIGH); }
 void StepperMotor::shift(int dir_){ digitalWrite(ports[2], LOW); long steps = floor(NUM_OF_IMPULSES_PER_TURN / SHIFTS); for(int s = 0; s < steps; s++){ if(dir_ == 1) { stepCW(); } else { stepCCW(); }} digitalWrite(this->ports[1], LOW); digitalWrite(ports[2], HIGH); }
-void StepperMotor::enable(){ digitalWrite(ports[2], LOW); }
-void StepperMotor::disable(){ digitalWrite(ports[2], HIGH); }
+
 
 
 LED *led;
@@ -358,7 +354,6 @@ void setup() {
   //steppers
   motorA = new StepperMotor(9, 8, 7, 32);
   motorA->inits();
-  motorA->enable();
 
   delay(500);
   for(int i = 0; i < 4; i++){
@@ -376,10 +371,6 @@ void setup() {
   led->turnOff();
 
   listener->set(true);
-
-  //мотор свободный для вращения
-  Serial.println("motor disabled");
-  motorA->disable();
   
 } 
 
@@ -387,15 +378,12 @@ void loop() { listenBluetooth(); }
 
 void scenarioA(){
 
-     //мотор становится активным
-     motorA->enable();
-
      Serial.println("Main Sequence");
      RUNNING = true;
 
      led->turnOff();
      sound->play(A, 2000);
-     delay(1000);
+     delay(10000);
 
      for(int i = 0; i < SHIFTS; i++){
 
@@ -409,10 +397,6 @@ void scenarioA(){
      delay(1500);
 
      endSignal();
-
-     //мотор свободный для вращения
-     Serial.println("motor disabled");
-     motorA->disable();
 
 }
 
@@ -451,22 +435,22 @@ void endSignal(){
 String parseData(String data_){
 
    if(data_.indexOf('_') < 0) {
-   if(data_.indexOf("START") >= 0) {  listener->set(false); delay(500); scenarioA(); delay(250); listener->sendIdle(); }
-   if(data_.indexOf("SINGLE") >= 0) { listener->set(false); delay(500); singleShot(); delay(250); listener->sendIdle(); }
-   else { return "[UNKNOWN COMMAND]"; }
+    if(data_.indexOf("START") >= 0) {  listener->set(false); delay(500); scenarioA(); delay(250); listener->sendIdle(); }
+    else if(data_.indexOf("SINGLE") >= 0) { listener->set(false); delay(500); singleShot(); delay(250); listener->sendIdle(); }
+    else { return "[UNKNOWN COMMAND]"; }
    }
    else{
    //String command = data_.substring(0, split.indexOf("_"));
    //String value =  data_.substring(split.indexOf("_") + 1);
    String value = data_.substring(data_.indexOf("_") + 1);
    
-   if(data_.indexOf("CW") >= 0 && data_.indexOf("CCW") < 0) { listener->set(false); delay(500); int val = round(NUM_OF_IMPULSES_PER_TURN / 360.0 * value.toInt()); motorA->moveNumOfSteps(val, CCW); delay(250); listener->sendIdle(); } 
-   if(data_.indexOf("CCW") >= 0 ) { listener->set(false); delay(500); int val = round(NUM_OF_IMPULSES_PER_TURN / 360.0 * value.toInt()); motorA->moveNumOfSteps(val, CW);  delay(250); listener->sendIdle(); }
-   if(data_.indexOf("FLASH_ON") >= 0) { listener->set(false); delay(500); Serial.println("flash is on"); delay(250); listener->sendIdle(); }
-   if(data_.indexOf("FLASH_OFF") >= 0) { listener->set(false); delay(500); Serial.println("flash is on"); delay(250); listener->sendIdle(); }
-   if(data_.indexOf("STABILIZATION") >= 0) { listener->set(false); delay(500); INTERVAL_A = value.toInt() * 1000; delay(250); listener->sendIdle();  }
-   if(data_.indexOf("EXPOSURE") >= 0) { listener->set(false); delay(500); INTERVAL_B = value.toInt() * 1000; delay(250); listener->sendIdle();}
-   if(data_.indexOf("STEPS") >= 0) { listener->set(false); delay(500); SHIFTS = value.toInt(); delay(250); listener->sendIdle(); }
+   if(data_.indexOf("CW_DOWN") >= 0 && data_.indexOf("CCW_DOWN") < 0 ) { motorA->moveNumOfSteps(32, CCW); delay(50);  } 
+   else if(data_.indexOf("CCW_DOWN") >= 0 ) { motorA->moveNumOfSteps(32, CW); delay(50); }
+   else if(data_.indexOf("FLASH_ON") >= 0) { listener->set(false); delay(500); Serial.println("flash is on"); delay(250); listener->sendIdle(); }
+   else if(data_.indexOf("FLASH_OFF") >= 0) { listener->set(false); delay(500); Serial.println("flash is on"); delay(250); listener->sendIdle(); }
+   else if(data_.indexOf("STABILIZATION") >= 0) { listener->set(false); delay(500); INTERVAL_A = value.toInt(); delay(250); listener->sendIdle();  }
+   else if(data_.indexOf("EXPOSURE") >= 0) { listener->set(false); delay(500); INTERVAL_B = value.toInt(); delay(250); listener->sendIdle();}
+   else if(data_.indexOf("STEPS") >= 0) { listener->set(false); delay(500); SHIFTS = value.toInt(); delay(250); listener->sendIdle(); }
    else { return "[UNKNOWN COMPOSITE COMMAND]"; }
    }
 

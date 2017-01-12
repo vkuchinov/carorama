@@ -26,6 +26,8 @@ public:
  void stepCCW();  //один шаг против часовой стрелки
  void moveNumOfSteps(int steps_, int dir_);
  void shift(int dir_);  
+ void disable();  
+ void enable();  
 };
 
 StepperMotor::StepperMotor(int dir_, int pull_, int enable_, int resolution_) { this->ports[0] = dir_; this->ports[1] = pull_; this->ports[2] = enable_; resolution = resolution_; }
@@ -86,7 +88,8 @@ void StepperMotor::stepCCW(){
 
 void StepperMotor::moveNumOfSteps(int steps_, int dir_){ digitalWrite(ports[2], LOW); for(int s = 0; s < steps_; s++){ if(dir_ == 1) { stepCW(); } else { stepCCW(); }} digitalWrite(this->ports[1], LOW); digitalWrite(ports[2], HIGH); }
 void StepperMotor::shift(int dir_){ digitalWrite(ports[2], LOW); long steps = floor(NUM_OF_IMPULSES_PER_TURN / SHIFTS); for(int s = 0; s < steps; s++){ if(dir_ == 1) { stepCW(); } else { stepCCW(); }} digitalWrite(this->ports[1], LOW); digitalWrite(ports[2], HIGH); }
-
+void StepperMotor::enable(){ digitalWrite(ports[2], HIGH); }
+void StepperMotor::disable(){ digitalWrite(ports[2], LOW); }
 
 StepperMotor *motorA; 
 void setup() {
@@ -100,16 +103,23 @@ void setup() {
 
 void loop() {
 
-  for(int i = 0; i <= SHIFTS; i++){
-  delay(2500);
-  motorA->shift(CW);
-  Serial.println(NUM_OF_IMPULSES_PER_TURN);
-  }
+Serial.println("disabling");
+motorA->disable();
+delay(3000);
+Serial.println("enabling");
+motorA->enable();
+delay(3000);
 
-    for(int i = 0; i <= SHIFTS; i++){
-  delay(2500);
-  motorA->shift(CCW);
-  Serial.println(NUM_OF_IMPULSES_PER_TURN);
-  }
+//  for(int i = 0; i <= SHIFTS; i++){
+//  delay(2500);
+//  motorA->shift(CW);
+//  Serial.println(NUM_OF_IMPULSES_PER_TURN);
+//  }
+//
+//    for(int i = 0; i <= SHIFTS; i++){
+//  delay(2500);
+//  motorA->shift(CCW);
+//  Serial.println(NUM_OF_IMPULSES_PER_TURN);
+//  }
   
 }
