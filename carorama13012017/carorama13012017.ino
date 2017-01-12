@@ -209,6 +209,7 @@ class Listener {
     Listener(int port_);
     void set(bool state_);
     void sendIdle();
+    void sendIdle(int times_);
     void getOK();
     void getStop();
 };
@@ -219,20 +220,35 @@ Listener::Listener(int port_) {
   this->last = millis();
 }
 void Listener::set(bool state_) {
+
+  delay(750);
+  
   this->state = state_;
   if (this->state) {
     digitalWrite(this->port, HIGH);
   } else {
     digitalWrite(this->port, LOW);
   }
+
+  delay(750);
+  
 }
 void Listener::sendIdle() {
+
+  delay(750);
+  
   while (!handshaked) {
     BT_HC06.print("![IDLE]");
     this->getOK();
   } this->set(true);
   handshaked = false;
+
+  delay(750);
+  
 }
+
+void Listener::sendIdle(int times_) { BT_HC06.print("![IDLE]"); }
+
 void Listener::getOK() {
 
   String metadata = "";
@@ -419,10 +435,8 @@ void setup() {
 
   //Listener
   listener = new Listener(11);
-  if (BT_HC06.available()) {
-    listener->sendIdle();
-  }
-
+  listener->sendIdle(9); 
+  
   //LED
   led = new LED(13);
   led->inits();
