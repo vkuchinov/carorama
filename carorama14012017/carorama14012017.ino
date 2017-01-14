@@ -448,7 +448,6 @@ void setup() {
   Blynk.virtualWrite(V20, "ИНИЦИАЛИЗАЦИЯ");
   Blynk.virtualWrite(V21, " ");
 
-  
   //Listener
   //  listener = new Listener(11);
   //  listener->sendIdle(9); 
@@ -667,26 +666,26 @@ String GetOnlyNumbers(String source_) {
   return output;
 }
 
-void listenBluetooth() {
-
-  String metadata = "";
-
-  while (BT_HC06.available() && listener->state == true) {
-
-    delay(2);
-    char c = BT_HC06.read();
-    metadata += c;
-
-  }
-
-  if (metadata.length() > 0) {
-    Serial.println(metadata);
-    parseData(metadata);
-  }
-
-  delay(5);
-
-}
+//void listenBluetooth() {
+//
+//  String metadata = "";
+//
+//  while (BT_HC06.available() && listener->state == true) {
+//
+//    delay(2);
+//    char c = BT_HC06.read();
+//    metadata += c;
+//
+//  }
+//
+//  if (metadata.length() > 0) {
+//    Serial.println(metadata);
+//    parseData(metadata);
+//  }
+//
+//  delay(5);
+//
+//}
 
 void updateParameters(){
 
@@ -699,15 +698,15 @@ void updateParameters(){
 
   //UPDATING CONTROLS
   Blynk.virtualWrite(V15, STEPS);
-  delay(10);delay(10);
+  delay(10);
   Blynk.virtualWrite(V16, STABILIZATION / 1000);
-  delay(10);delay(10);
+  delay(10);
   Blynk.virtualWrite(V17, EXPOSURE / 1000);
-  delay(10);delay(10);
+  delay(10);
 
   Blynk.virtualWrite(V20, "СВОБОДНО");
   Blynk.virtualWrite(V21, " ");
-  delay(10);delay(10);
+  delay(10);
 
 }
 
