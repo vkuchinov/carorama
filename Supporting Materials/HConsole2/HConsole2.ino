@@ -14,31 +14,126 @@
  
 #include <SoftwareSerial.h>  
 
+int received = 0;
+
 int bluetoothTx = 2;  // TX-O pin of bluetooth mate, Arduino D2
 int bluetoothRx = 3;  // RX-I pin of bluetooth mate, Arduino D3
 
-int listenerPin = 11;
-bool listener = true;
 
 SoftwareSerial bluetooth(bluetoothTx, bluetoothRx);
+
+class Listener {
+  private:
+
+    int port;
+
+  public:
+
+    bool state = true;
+    bool handshaked = false;
+    int last;
+
+    Listener(int port_);
+    void set(bool state_);
+    void sendIdle();
+    void sendIdle(int times_);
+    void getOK();
+    void getStop();
+};
+
+
+Listener::Listener(int port_) {
+  this->port = port_;
+  this->last = millis();
+}
+void Listener::set(bool state_) {
+
+  delay(750);
+  
+  this->state = state_;
+  if (this->state) {
+    digitalWrite(this->port, HIGH);
+  } else {
+    digitalWrite(this->port, LOW);
+  }
+
+  delay(750);
+  
+}
+void Listener::sendIdle() {
+
+  delay(750);
+  
+  while (!handshaked) {
+    bluetooth.print("![IDLE]");
+    this->getOK();
+  } this->set(true);
+  handshaked = false;
+
+  delay(750);
+  
+}
+
+void Listener::sendIdle(int times_) { bluetooth.print("![IDLE]"); }
+
+void Listener::getOK() {
+
+  String metadata = "";
+
+  while (bluetooth.available()) {
+
+    delay(3);
+    char c = bluetooth.read();
+    metadata += c;
+
+  }
+
+  if (metadata.length() > 0 && metadata.indexOf("OK") >= 0) {
+    String m = "[HANDSHAKE] in " + String((millis() - this->last)) + " millis";
+    this->handshaked = true;
+    this->last = millis();
+    Serial.println(m);
+    delay(50);
+  }
+
+}
+
+void Listener::getStop() {
+
+  String metadata = "";
+
+  while (bluetooth.available()) {
+
+    delay(3);
+    char c = bluetooth.read();
+    metadata += c;
+
+  }
+
+  if (metadata.length() > 0 && metadata.indexOf("STOP") >= 0) {
+    this->handshaked = true;
+  }
+
+}
 
 long starts; 
 long ends;
 
 int counter = 0;
-  
+Listener *listener;
+
 void setup()
 
 {
 
-  pinMode(listenerPin, OUTPUT);
-  digitalWrite(listenerPin, HIGH);
-  
   Serial.begin(9600);  // Begin the serial monitor at 9600bps
-
   while (!Serial) { // wait for serial port 
   }
+  Serial.println("WELCOME TO HC-06 TEST");
 
+  listener = new Listener(11);
+  listener->set(true);
+  
   bluetooth.begin(115200);  // The Bluetooth Mate defaults to 115200bps
   bluetooth.print("$");  // Print three times individually
   bluetooth.print("$");
@@ -46,23 +141,52 @@ void setup()
   delay(100);  // Short delay, wait for the Mate to send back CMD
   bluetooth.println("U,9600,N");  // Temporarily Change the baudrate to 9600, no parity
   bluetooth.begin(9600);  // Start bluetooth serial at 9600
+  //bluetooth.write("AT+NAMECARORAMA");
 
-  Serial.println("RESETING COUNTER");
-  bluetooth.print("![IDLE]");
+  Serial.println("LISTENING...");
+  bluetooth.print("[[![IDLE]]]");
   
 }
 
 void loop()
 {
+//
+//  String metadata = "";
+//
+//  if(listener){
+//  while(bluetooth.available())  { delay(3); char c = bluetooth.read(); metadata += c; }
+//
+//  if(checkPacket(metadata)) 
+//  
+//  { 
+//    
+//    if(getCommand(metadata).indexOf("OK") < 0) 
+//  
+//    { 
+//
+//    delay(500);
+//    received++;
+//    int val = metadata.substring(metadata.indexOf("_") + 1, metadata.indexOf("]")).toInt();
+//    String m = getCommand(metadata) + " from " + received + " or " + round(val/received*100);
+//    String b = "[[[[[<![" + m + "]>]]]]]";
+//    
+//    bluetooth.print(b); 
+//    //Serial.println(m); 
+//    delay(500);
+//    
+//    } 
 
-  String metadata = "";
-
-  if(listener){
-  while(bluetooth.available())  { delay(3); char c = bluetooth.read(); metadata += c; }
-
-  if(checkPacket(metadata)) { if(getCommand(metadata).indexOf("OK") < 0) { Serial.println("valid packet"); delay(50); delay(50); Serial.println(getCommand(metadata)); } } //else { if(metadata.length() > 1) { Serial.println("invalid packet"); delay(50); } }
+String b = "![A" + String(counter) + "]";
+bluetooth.print(b); 
+delay(200);
+counter++;
+    
+  } 
+    
+    
+    //else { if(metadata.length() > 1) { Serial.println("invalid packet"); delay(50); } }
   
-  if (getCommand(metadata).indexOf("STR") >=0) { listener = false; delay(5000); while(!listener) { resetAndroid(); }}
+  //if (getCommand(metadata).indexOf("STR") >=0) { listener = false; delay(5000); while(!listener) { resetAndroid(); }}
   //  if (metadata.indexOf("SINGLE") >=0) { Serial.println("[SINGLE]"); listener = false; digitalWrite(listenerPin, LOW); delay(2500); while(!listener) { resetAndroid(); }}
   //  if (metadata.indexOf("FLASH_ON") >=0) { Serial.println("[FLASH_ON]"); listener = false; digitalWrite(listenerPin, LOW); delay(1500); while(!listener) { resetAndroid(); }}
   //  if (metadata.indexOf("FLASH_OFF") >=0) { Serial.println("[FLASH_OFF]"); listener = false; digitalWrite(listenerPin, LOW); delay(1500); while(!listener) { resetAndroid(); }}
@@ -74,15 +198,15 @@ void loop()
   //  }
 
   //Serial.println(metadata);
-  }
-  sendIdle();
+  //}
+  //sendIdle();
   
 
-}
+//}
 
 String getCommand(String data_){
 
-    return data_.substring(data_.indexOf("["), data_.indexOf("]") + 1);
+    return data_.substring(data_.indexOf("["), data_.indexOf("]"));
 }
 
 bool checkPacket(String data_){
@@ -132,7 +256,7 @@ void resetAndroid(){
     //Serial.print((char)bluetooth.read());  
   }
 
-  if (metadata == "[OK]") { delay(5); listener = true; digitalWrite(listenerPin, HIGH); delay(5); Serial.println("[HANDSHAKED]"); Serial.println(millis() - starts); starts = millis(); }
+  //if (getCommand(metadata).indexOf("OK") >=0) { delay(5); listener = true; digitalWrite(listenerPin, HIGH); delay(5); Serial.println("[HANDSHAKED]"); Serial.println(millis() - starts); starts = millis(); }
   
 }
 
